@@ -1,5 +1,6 @@
 import { MODULE_BY_KEY } from '@/data/modules'
 import { allRows, listRows, resetRows, saveRows } from '@/data/local-store'
+import { clearRetainExportBooks } from '@/data/retain-store'
 import type { ActionResult, EntryRow, ModuleMeta, OverviewResult, PageResult } from '@/data/types'
 
 // 会写进数据的「往回走」动作：命中就把这条记录标成异常态，看板上能一眼看出来。
@@ -43,6 +44,18 @@ export function runAction(key: string, id: number, action: string): ActionResult
   if (current === target) {
     return { ok: false, message: `${meta.entity}已经是「${target}」，不用重复操作` }
   }
+  if (meta.strictFlow) {
+    // 状态一节一节流转：只允许从紧邻的上一节进入目标节，跨级一律拒收。
+    const targetIndex = meta.statuses.indexOf(target)
+    const expected = targetIndex > 0 ? meta.statuses[targetIndex - 1] : ''
+    if (current !== expected) {
+      return {
+        ok: false,
+        rejected: true,
+        message: `${meta.entity}当前为「${current}」，须先到「${expected}」才能${action}；跨级操作拒收`,
+      }
+    }
+  }
   const lastStatus = meta.statuses[meta.statuses.length - 1]
   const updated: EntryRow = {
     ...rows[index],
@@ -58,6 +71,9 @@ export function runAction(key: string, id: number, action: string): ActionResult
 
 export function resetModule(key: string): PageResult {
   resetRows(key)
+  if (key === 'retainsample') {
+    clearRetainExportBooks()
+  }
   return listEntries(key)
 }
 

@@ -24,6 +24,35 @@
       </span>
     </p>
 
+    <section class="todo-panel">
+      <h3 class="todo-title">留样联动待办（留样状态一节一节流转，自动反映到稳定性考察）</h3>
+      <table class="data-table" v-if="todos.length">
+        <thead>
+          <tr>
+            <th>留样编号</th>
+            <th>对应批号</th>
+            <th>留样期限</th>
+            <th>存放条件</th>
+            <th>留样状态</th>
+            <th>到期日期</th>
+            <th>待办事项</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="todo in todos" :key="todo.留样编号">
+            <td>{{ todo.留样编号 }}</td>
+            <td>{{ todo.对应批号 }}</td>
+            <td>{{ todo.留样期限册.replace('留样期限：', '') }}</td>
+            <td>{{ todo.存放条件 }}</td>
+            <td><span :class="['status-pill', todo.留样状态 === '待销毁' ? 'pill-orange' : 'pill-amber']">{{ todo.留样状态 }}</span></td>
+            <td>{{ todo.到期日期 || '长期' }}</td>
+            <td>{{ todo.待办 }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else class="empty-state" style="padding: 10px;">暂无到期或待销毁留样带来的考察待办</p>
+    </section>
+
     <form class="filter-bar" @submit.prevent="reload">
       <label v-for="field in filterFields" :key="field" class="filter-item">
         <span>{{ field }}</span>
@@ -79,7 +108,8 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
-import type { EntryRow } from '@/data/types'
+import { stabilityTodos } from '@/api/retain-service'
+import type { EntryRow, StabilityTodo } from '@/data/types'
 
 const meta = moduleMeta('stability')
 const columns = ["考察编号", "考察批号", "考察条件", "考察时间点", "检验项目", "考察结果", "考察人", "考察状态"]
@@ -88,6 +118,7 @@ const statuses = ["待考察", "考察中", "已完成", "已终止"]
 const stats = [{"label": "待考察批次", "value": 0}, {"label": "考察中批次", "value": 0}, {"label": "已完成考察数", "value": 0}]
 
 const rows = ref<EntryRow[]>([])
+const todos = ref<StabilityTodo[]>([])
 const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
@@ -128,6 +159,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    todos.value = stabilityTodos()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '稳定性考察列表读取失败'
   }

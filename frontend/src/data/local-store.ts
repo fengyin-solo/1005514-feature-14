@@ -20,7 +20,16 @@ function readStorage(): Record<string, EntryRow[]> {
   }
   try {
     const parsed = JSON.parse(raw) as Record<string, EntryRow[]>
-    return { ...fallback, ...parsed }
+    const merged = { ...fallback, ...parsed }
+    // 旧版留样台账没有「留样期限册」字段，无法按期限分册，回落成新的示例结构。
+    const retainRows = merged.retainsample ?? []
+    if (retainRows.length > 0 && retainRows.some((row) => !('留样期限册' in row))) {
+      merged.retainsample = clone(SEED_ROWS.retainsample ?? [])
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
+      }
+    }
+    return merged
   } catch {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(fallback))
     return fallback
