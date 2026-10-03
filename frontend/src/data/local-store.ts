@@ -2,7 +2,9 @@ import { SEED_ROWS } from './seed'
 import type { EntryRow } from './types'
 
 // 本地持久化：数据放在 localStorage 里，刷新、关掉再打开都还在。
-const STORAGE_KEY = 'pharma-cleanroom:entries'
+// v2：留样模块换成真实业务字段与状态机，旧的占位播种数据作废，整体播种一遍。
+const STORAGE_KEY = 'pharma-cleanroom:entries:v2'
+const AUX_PREFIX = 'pharma-cleanroom:aux:'
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
@@ -52,6 +54,28 @@ export function resetRows(key: string): EntryRow[] {
   const rows = clone(SEED_ROWS[key] ?? [])
   saveRows(key, rows)
   return rows
+}
+
+/** 读附属数据（导出批次记录等非条目数据）；无浏览器环境时退回默认值。 */
+export function readAux<T>(name: string, fallback: T): T {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return clone(fallback)
+  }
+  const raw = window.localStorage.getItem(AUX_PREFIX + name)
+  if (!raw) {
+    return clone(fallback)
+  }
+  try {
+    return JSON.parse(raw) as T
+  } catch {
+    return clone(fallback)
+  }
+}
+
+export function writeAux<T>(name: string, value: T): void {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    window.localStorage.setItem(AUX_PREFIX + name, JSON.stringify(value))
+  }
 }
 
 export function storageKey(): string {

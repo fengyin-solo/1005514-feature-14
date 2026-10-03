@@ -1,5 +1,5 @@
 import { MODULE_BY_KEY } from '@/data/modules'
-import { allRows, listRows, resetRows, saveRows } from '@/data/local-store'
+import { allRows, listRows, resetRows, saveRows, writeAux } from '@/data/local-store'
 import type { ActionResult, EntryRow, ModuleMeta, OverviewResult, PageResult } from '@/data/types'
 
 // 会写进数据的「往回走」动作：命中就把这条记录标成异常态，看板上能一眼看出来。
@@ -28,7 +28,12 @@ export function listEntries(key: string, filters: Record<string, string> = {}): 
   return { items: matched, total: matched.length, page: 1, size: matched.length }
 }
 
-export function runAction(key: string, id: number, action: string): ActionResult {
+export function runAction(
+  key: string,
+  id: number,
+  action: string,
+  params: Record<string, string> = {},
+): ActionResult {
   const meta = moduleMeta(key)
   const target = meta.actionTargets[action]
   if (!target) {
@@ -43,9 +48,31 @@ export function runAction(key: string, id: number, action: string): ActionResult
   if (current === target) {
     return { ok: false, message: `${meta.entity}已经是「${target}」，不用重复操作` }
   }
+  // 一节一节流转：声明了 flowFrom 的模块，只允许从上一节发起；跨级一律拒收。
+  const allowedFrom = meta.flowFrom?.[action]
+  if (allowedFrom && !allowedFrom.includes(current)) {
+    return {
+      ok: false,
+      message: `「${action}」只能在 ${allowedFrom.join('、')} 状态办理，当前是「${current}」，跨级操作已拒收`,
+    }
+  }
+  // 核准人、签字人等必填参数：空值直接挡回；日期型参数留空自动补当天。
+  const inputs = meta.actionInputs?.[action] ?? []
+  const filledParams: Record<string, string> = {}
+  for (const input of inputs) {
+    let value = (params[input.field] ?? '').trim()
+    if (input.defaultToday && value === '') {
+      value = todayLocalDate()
+    }
+    if (input.required && value === '') {
+      return { ok: false, message: `「${action}」前必须填写${input.label}` }
+    }
+    filledParams[input.field] = value
+  }
   const lastStatus = meta.statuses[meta.statuses.length - 1]
   const updated: EntryRow = {
     ...rows[index],
+    ...filledParams,
     status: target,
     pending: target !== lastStatus,
     abnormal: NEGATIVE_ACTIONS.some((verb) => action.startsWith(verb)),
@@ -56,8 +83,20 @@ export function runAction(key: string, id: number, action: string): ActionResult
   return { ok: true, message: `${meta.entity}已${action}，当前状态「${target}」` }
 }
 
+function todayLocalDate(): string {
+  const date = new Date()
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export function resetModule(key: string): PageResult {
   resetRows(key)
+  if (key === 'retainsample') {
+    // 回到示例数据时，同一份留样重复导出只算一次的已下发记录也一并清掉。
+    writeAux('retain-export-log', [])
+  }
   return listEntries(key)
 }
 
@@ -74,6 +113,19 @@ export function exportEntries(key: string): { filename: string; content: string 
 export function downloadEntries(key: string): void {
   const { filename, content } = exportEntries(key)
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  document.body.removeChild(anchor)
+  URL.revokeObjectURL(url)
+}
+
+/** 二进制包下载：留样台账分册打成一个 ZIP 后立刻触发浏览器下载下发。 */
+export function downloadBytes(filename: string, bytes: Uint8Array): void {
+  const blob = new Blob([bytes as BlobPart], { type: 'application/zip' })
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url

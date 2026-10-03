@@ -35,3 +35,24 @@ body { margin: 0; background: #f6f8fb; color: #1f2937; }
 .error-text { color: #b42318; }
 .status-legend { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 10px; font-size: 12px; color: var(--muted); }
 .legend-item { background: #eef2f7; border-radius: 999px; padding: 2px 10px; }
+.tag { display: inline-block; border-radius: 4px; padding: 0 6px; font-size: 11px; line-height: 18px; margin-left: 4px; vertical-align: middle; }
+.tag-ok { background: #e7f6ec; color: #117a37; border: 1px solid #b7e0c4; }
+.tag-warn { background: #fdf3e2; color: #9a5b06; border: 1px solid #f0d9ad; }
+.row-muted { color: #94a3b8; }
+.row-muted td { background: #fafbfc; }
+.row-done td { color: #64748b; }
+.cell-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.rule-note { font-size: 12px; color: var(--muted); background: #eef4ff; border: 1px solid #d4e2fb; border-radius: 6px; padding: 8px 10px; margin: 10px 0; }
+.ok-text { color: #117a37; }
+.block-title { font-size: 14px; margin: 18px 0 8px; }
+.modal-mask { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.modal { background: #fff; border-radius: 10px; padding: 18px 20px; width: 620px; max-width: 94vw; max-height: 88vh; overflow: auto; box-shadow: 0 18px 48px rgba(15, 23, 42, 0.25); }
+.modal-wide { width: 860px; }
+.modal h3 { margin: 0 0 4px; font-size: 16px; }
+.modal-sub { font-size: 12px; color: var(--muted); margin: 4px 0 12px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+.form-grid label span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+.form-grid input, .form-grid select, .filter-bar input, .filter-bar select { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 13px; }
+.form-grid small { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
